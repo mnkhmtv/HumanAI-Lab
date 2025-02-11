@@ -9,8 +9,7 @@ BASE_URL = "http://localhost:8000"  # Adjust if necessary
 
 # pip install streamlit
 # to start the client run
-# streamlit run client.py
-
+# streamlit run client.py   
 
 # Helper function to display a small image (thumbnail)
 def display_thumbnail(base64_string):
@@ -19,13 +18,26 @@ def display_thumbnail(base64_string):
     image.thumbnail((128, 128))  # Resize image to a thumbnail
     return image
 
-
 def create_user_form():
     # TODO: use st.form to create a form for user creation
 
     # TODO: if form was submitted, then make a post request to create a user
-    ...
+    with st.form("create_user_form"):
+        name = st.text_input("name")
+        age = st.number_input("age", min_value=0, step=1)
+        graduated = st.checkbox("graduated")
 
+        submitted = st.form_submit_button("Create User")
+        if submitted:
+            response = requests.post(f"{BASE_URL}/users/", json={
+                "name": name,
+                "age": age,
+                "graduated": graduated
+            })
+            if response.status_code == 200:
+                st.success("User created successfully!")
+            else:
+                st.error("Failed to create user.")
 
 def set_profile_pic():
     # Store user input in session state
@@ -59,8 +71,15 @@ def set_profile_pic():
                 st.session_state.uploaded_file.type,
             )
         }
-
+        
         # TODO: send a file and use success/error to handle status code
+        response = requests.post(f"{BASE_URL}/users/{st.session_state.user_id}/upload/", files=files)
+
+        if response.status_code == 200:
+            st.success("Profile picture uploaded successfully!")
+        else:
+            st.error("Failed to upload profile picture.")
+        
 
     elif upload_button:
         st.warning(
@@ -96,10 +115,15 @@ def display_user(user):
                     "name": new_name,
                     "age": new_age,
                     "graduated": new_graduated,
+                    
                 }
+                # TODO: update user and handle status_code      
+                response = requests.put(f"{BASE_URL}/users/{user['id']}/", json=update_data)
 
-                # TODO: update user and handle status_code
-
+                if response.status_code == 200:
+                    st.success("User updated successfully!")
+                else:
+                    st.error("Failed to update user") 
 
 def display_all_users(response):
     users = response.json()
@@ -120,7 +144,7 @@ if __name__ == "__main__":
 
     # Display All Users with Edit Option
     st.header("All Users")
-    response = requests.get(f"{BASE_URL}/user/")
+    response = requests.get(f"{BASE_URL}/users/")
     if response.status_code == 200:
         display_all_users(response)
     else:
